@@ -9,7 +9,7 @@ import pyvista as pv
 import pandas as pd
 from scipy.interpolate import griddata
 from timeit import default_timer
-import scipy.io
+# import scipy.io
 
 
 # %%
@@ -19,7 +19,7 @@ width = 100
 
 #Create a pyGimli configuration
 nPerLine = 21
-scheme = ert.createERTData(elecs=np.linspace(start=-20, stop=20, num=nPerLine),
+scheme = ert.createERTData(elecs=np.linspace(start=-15, stop=15, num=nPerLine),
                            schemeName='dd')
 pos = scheme.sensorPositions().array()
 
@@ -57,29 +57,29 @@ def creatPLC():
     plc = mt.createCube(size=[width, width, depth], pos=[0, 0, -depth/2], boundaryMarker=1)
     # Force finer meshing at at the sensors by create an additional node at 1/2 mm in -z-direction
     for sensor in scheme.sensors().array():
-        plc.createNode(sensor - [0.0, 0.0, 0.01])
-        plc.createNode(sensor - [0.0, 0.0, 0.1])
-        plc.createNode(sensor - [0.0, 0.0, 0.5])
-        plc.createNode(sensor - [0.0, 0.0, 1.5])
+        plc.createNode(sensor - [0.0, 0.0, 0.0005])
+        # plc.createNode(sensor - [0.0, 0.0, 0.1001])
+        # plc.createNode(sensor - [0.0, 0.0, 0.1])
+        # plc.createNode(sensor - [0.0, 0.0, 1])
     return plc
 
 plc = creatPLC()
     
 mesh = mt.createMesh(plc)
 ## Visualization
-pg.show(mesh)
-mesh.exportVTK('mesh')
+# pg.show(mesh)
+# mesh.exportVTK('mesh')
     
 
-hom = simulateERT(mesh, res=1.0, scheme=scheme, sr=False,
-                  calcOnly=True, verbose=True)
+# hom = simulateERT(mesh, res=1.0, scheme=scheme, sr=False,
+#                   calcOnly=True, verbose=True)
 
 
-hom.save('homogeneous.ohm', 'a b m n u')
-hom.set('k', 1.0/ (hom('u') / hom('i')))
-hom.set('rhoa', hom('k') * hom('u') / hom('i'))
+# hom.save('homogeneous.ohm', 'a b m n u')
+# hom.set('k', 1.0/ (hom('u') / hom('i')))
+# hom.set('rhoa', hom('k') * hom('u') / hom('i'))
 
-hom.save('simulatedhom.dat', 'a b m n rhoa k u i')
+# hom.save('simulatedhom.dat', 'a b m n rhoa k u i')
 
 
 # %%
@@ -105,28 +105,28 @@ def defGeom(dim = [1,2,3], position = [0,0,-10], plc = None):
     cube = mt.createCube(size=[x_dim, y_dim, z_dim], pos=[x_c, y_c, z_c], marker=2)
     plc0 += cube 
     
-    xyz_body_grid = getGrid(x_dim, y_dim, z_dim, x_c, y_c, z_c)
+    # xyz_body_grid = getGrid(x_dim, y_dim, z_dim, x_c, y_c, z_c)
     
-    # force finer meshing around the geo-body [BUG]
-    meshsize1 = 0.3
-    meshsize2 = 0.5
+    # # force finer meshing around the geo-body 
+    # meshsize1 = 0.3
+    # meshsize2 = 0.5
     
-    for n in xyz_body_grid:
-        plc0.createNode(n - [meshsize1, 0.0, 0])
-        plc0.createNode(n + [meshsize1, 0.0, 0])
-        plc0.createNode(n - [0.0, meshsize1, 0])
-        plc0.createNode(n + [0.0, meshsize1, 0])
-        plc0.createNode(n - [0.0, 0.0, meshsize1])
-        plc0.createNode(n + [0.0, 0.0, meshsize1])
+    # # for n in xyz_body_grid:
+    #     plc0.createNode(n - [meshsize1, 0.0, 0])
+    #     plc0.createNode(n + [meshsize1, 0.0, 0])
+    #     plc0.createNode(n - [0.0, meshsize1, 0])
+    #     plc0.createNode(n + [0.0, meshsize1, 0])
+    #     plc0.createNode(n - [0.0, 0.0, meshsize1])
+    #     plc0.createNode(n + [0.0, 0.0, meshsize1])
         
-        plc0.createNode(n - [meshsize2, 0.0, 0])
-        plc0.createNode(n + [meshsize2, 0.0, 0])
-        plc0.createNode(n - [0.0, meshsize2, 0])
-        plc0.createNode(n + [0.0, meshsize2, 0])
-        plc0.createNode(n - [0.0, 0.0, meshsize2])
-        plc0.createNode(n + [0.0, 0.0, meshsize2])
+    #     plc0.createNode(n - [meshsize2, 0.0, 0])
+    #     plc0.createNode(n + [meshsize2, 0.0, 0])
+    #     plc0.createNode(n - [0.0, meshsize2, 0])
+    #     plc0.createNode(n + [0.0, meshsize2, 0])
+    #     plc0.createNode(n - [0.0, 0.0, meshsize2])
+    #     plc0.createNode(n + [0.0, 0.0, meshsize2])
     
-    mesh = mt.createMesh(plc0)
+    mesh = mt.createMesh(plc0,area = 5)
     return mesh
 
 def getGrid(x_dim, y_dim, z_dim, x_c, y_c, z_c):
@@ -178,7 +178,7 @@ a_list = np.empty((0,1), int)
 u_list = np.empty((0,1), int)
 
 
-nSamples = 1000
+nSamples = 1
 
 ## define the range of the parameters
 position_upper = np.array([-2,-2,-20]) # modify manually according to the problem
@@ -191,7 +191,7 @@ dim_lower = np.array([7,7,5])
 dims = np.random.uniform(dim_lower,dim_upper,size = (nSamples,3))
 
 Rho1 = 10*np.ones(shape = (nSamples,1))
-Rho2 = 100*np.ones(shape = (nSamples,1))
+Rho2 = 10*np.ones(shape = (nSamples,1))
 # Rho2 = np.random.uniform(90,110,size = (nSamples,1))
 
 for i in range(nSamples):
@@ -202,11 +202,11 @@ for i in range(nSamples):
     ## force re-meshing around the geobody
     depth_ = position[2] - dim[2]/2 
     # create a 2D grid at the top surface of the geo-body
-    xyd = np.stack([x_2d.flatten(),y_2d.flatten(),np.repeat((depth_),x_2d.flatten().shape)]).T
+    # xyd = np.stack([x_2d.flatten(),y_2d.flatten(),np.repeat((depth_),x_2d.flatten().shape)]).T
     
-    for n in xyd:
-        plc.createNode(n + [0.0, 0.0, 0.2])
-        plc.createNode(n + [0.0, 0.0, 1])
+    # for n in xyd:
+    #     plc.createNode(n + [0.0, 0.0, 0.2])
+    #     plc.createNode(n + [0.0, 0.0, 1])
     
     mesh = defGeom(dim, position, plc)
 
@@ -237,7 +237,7 @@ for i in range(nSamples):
     # print(hetTemp['rhoa'])
 
 mesh.exportVTK('mesh')
-scipy.io.savemat('/Users/zhouji/Documents/github/ERT/generateData/data1000_6.mat', mdict={'coord':xyz_list, 'a': a_list,'u': u_list})
+# scipy.io.savemat('/Users/zhouji/Documents/github/ERT/generateData/data1000_6.mat', mdict={'coord':xyz_list, 'a': a_list,'u': u_list})
 
 # %%
 ## Visualization
@@ -249,7 +249,7 @@ sys.path.append("..")
 from plot3D import plotData, plotGrid
 
 # %%
-plotData(hetTemp,nPerLine,3)
+plotData(hetTemp,nPerLine,1)
 # %%
 values = np.reshape(resValues,[Griddim[1],Griddim[0],Griddim[2]])
 
